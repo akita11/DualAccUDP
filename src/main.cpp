@@ -2,15 +2,15 @@
 #include <WiFi.h>
 #include <WiFiUdp.h>
 
-#define SERVER
+//#define SERVER // for UDP Server
 
 const char *ssid = "DualAccUDP_AP";
 const char *password = "12345678";
 
 WiFiUDP udp;
 const int UDPPort = 12345;
+const char *serverIP = "192.168.4.1"; // APのIP
 #ifdef SERVER
-const char *serverIP = "192.168.4.1"; // APのデフォルトIP
 char buf[1024];
 #else
 #endif
@@ -59,8 +59,8 @@ void loop()
 	}
 #else
 	const char *message = "Hello from M5Stack_B!";
-	udp.beginPacket(serverIP, serverPort);
-	udp.write(message);
+	udp.beginPacket(serverIP, UDPPort);
+	udp.print(message);
 	udp.endPacket();
 
 	Serial.println("Sent packet: " + String(message));
