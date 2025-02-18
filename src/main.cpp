@@ -1,15 +1,18 @@
 #include <M5Unified.h>
 #include <WiFi.h>
 #include <WiFiUdp.h>
+#include <Ticker.h>
 
-#define SERVER // for UDP Server
+//#define SERVER // for UDP Server
 
 #define TCP // use TCP, instead of UDP
 
 const char *ssid = "DualAccUDP_AP";
 const char *password = "12345678";
-
 #define PORT 12345
+Ticker ticker;
+#define SAMPLE_FREQ 250
+
  #ifdef TCP
 WiFiServer server(PORT);
 WiFiClient client;
@@ -24,6 +27,15 @@ uint32_t t0;
 #else
 int n = 0;
 #endif
+
+volatile uint8_t fSample = 0;
+
+void IRAM_ATTR onTicker()
+{
+//	printf("fSample = %d", fSample);
+	fSample = 1;
+//	printf("-> %d\n", fSample);
+}
 
 void setup()
 {
@@ -49,9 +61,9 @@ void setup()
 		delay(500);
 		printf(".");
 	}
-	printf("\nConnected to WiFi!, IP Address: %s\n", WiFi.localIP().toString());
-	for (uint16_t i = 0; i < 1000; i++) buf[i] = '0' + (i % 10);
-	buf[1000] = '\0';
+	printf("\nConnected to WiFi, IP Address: %s\n", WiFi.localIP().toString());
+//	for (uint16_t i = 0; i < 1000; i++) buf[i] = '0' + (i % 10); buf[1000] = '\0';
+ sprintf(buf, "0.123,0.234,0.345,0.456,0.567,0.678\n");
  #ifdef TCP
  	printf("Connecting to TCP server...");
  	while (!client.connect(serverIP, PORT)) {
@@ -60,6 +72,7 @@ void setup()
 	}
 	printf("\nConnected to TCP server\n");
  #endif
+	ticker.attach_ms((int)(1000 / SAMPLE_FREQ), onTicker);
 #endif
 }
 
@@ -68,7 +81,7 @@ void loop()
 #ifdef SERVER
  #ifdef TCP
 	if (!client) {
-		client = server.available();  // クライアントの接続を待機
+		client = server.available();
 		if (client) printf("Client connected.\n");
 	} else {
 		if (client.available()) {
@@ -92,7 +105,8 @@ void loop()
 	}
  #endif
 #else // not SERVER
-	buf[0] = 'A' + (n % 10); n++; buf[1] = '1';
+	fSample = 0;
+	while(fSample == 0) delayMicroseconds(10);;
  #ifdef TCP
  	if (client.connected()) {
 		client.print(buf);
